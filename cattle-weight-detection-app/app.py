@@ -1,42 +1,73 @@
 import streamlit as st
 from PIL import Image
 from predictor import CattleWeightPredictor
+import traceback
 
+# ---------------- Page Config ----------------
 st.set_page_config(page_title="Cattle Weight Estimator", layout="centered")
+
 st.title("🐄 Cattle Weight Estimation System")
 st.write("Upload a cattle image and the AI will estimate its weight.")
 
-# Sidebar info
+# ---------------- Sidebar ----------------
 st.sidebar.header("About")
-st.sidebar.write("This app uses deep learning models trained in Google Colab to estimate cattle weight from images.")
-st.sidebar.write("Models: Segmentation & Regression (Keras)")
-st.sidebar.write("Author: FYP Team")
+st.sidebar.write(
+    "This app uses deep learning models (Segmentation + Regression) "
+    "to estimate cattle weight from images."
+)
+st.sidebar.write("Framework: TensorFlow / Keras")
+st.sidebar.write("Project: Final Year Project")
 
-uploaded = st.file_uploader("Upload Image", type=["jpg","jpeg","png"])
-
-# Cache the model so it loads only once
+# ---------------- Load Model (ONLY ONCE) ----------------
 @st.cache_resource
-def load_model():
+def load_predictor():
+    """
+    Loads ML models once and keeps them in memory.
+    Prevents TensorFlow from reloading on every refresh.
+    """
     return CattleWeightPredictor()
 
-if uploaded:
+predictor = load_predictor()
+
+# ---------------- File Upload ----------------
+uploaded_file = st.file_uploader(
+    "Upload a cattle image",
+    type=["jpg", "jpeg", "png"]
+)
+
+# ---------------- Prediction Logic ----------------
+if uploaded_file is not None:
+
+    # Open image safely
     try:
-        image = Image.open(uploaded).convert("RGB")
-        st.image(image, caption="Uploaded Image", use_container_width=True)
+        image = Image.open(uploaded_file).convert("RGB")
     except Exception as e:
-        st.error(f"Image loading failed: {e}")
-        image = None
+        st.error("Invalid image file.")
+        st.text(str(e))
+        st.stop()
 
-    predictor = load_model()
+    # Show uploaded image
+    st.image(image, caption="Uploaded Image")
 
-    if image:
+    # Predict button
+    if st.button("Predict Weight"):
+
         with st.spinner("Analyzing cattle..."):
-            weight, confidence = predictor.predict(image)
 
-        if weight is None or confidence is None:
-            st.error("Prediction failed. Please check your model files or image format.")
-        else:
-            st.success(f"Estimated Weight: {weight:.1f} kg")
-            st.info(f"Cattle Detection Confidence: {confidence:.1f}%")
-    else:
-        st.warning("Please upload a valid image.")
+            try:
+                weight, confidence = predictor.predict(image)
+
+                # -------- Handle prediction results --------
+                if weight is None:
+                    st.error("Prediction failed. Check terminal for detailed error.")
+                else:
+                    st.success(f"Estimated Weight: {weight:.2f} kg")
+                    st.info(f"Detection Confidence: {confidence:.2f}%")
+
+            except Exception as e:
+                st.error("An internal error occurred.")
+                st.text(str(e))
+                st.text(traceback.format_exc())
+
+else:
+    st.info("Please upload an image to start prediction.")

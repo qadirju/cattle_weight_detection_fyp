@@ -26,7 +26,7 @@ All dependencies can be installed via the provided requirements file.
 
 1. **Clone the repository:**
 	```bash
-	git clone https://github.com/yourusername/cattle_weight_detection_fyp.git
+	git clone https://github.com/qadirju/cattle_weight_detection_fyp.git
 	cd cattle_weight_detection_fyp
 	```
 2. **Add model files:**
